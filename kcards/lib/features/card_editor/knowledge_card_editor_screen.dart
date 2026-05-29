@@ -1,9 +1,8 @@
-import 'dart:io' as io;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kcards/data/database/database.dart';
+import 'package:kcards/data/models/card_image_model.dart';
+import 'package:kcards/data/models/knowledge_card_model.dart';
 import 'package:kcards/shared/providers/database_provider.dart';
 import 'package:kcards/shared/widgets/image_strip_widget.dart';
 import 'package:kcards/shared/widgets/markdown_editor_widget.dart';
@@ -33,16 +32,18 @@ class _KnowledgeCardEditorScreenState
   bool _loading = true;
   bool _saving = false;
 
-  KnowledgeCard? _existing;
+    KnowledgeCardModel? _existing;
 
-  List<KnowledgeCardImage> _savedImages = [];
+    List<CardImageModel> _savedImages = [];
   final List<String> _pendingPaths = [];
-  final Set<int> _deletedIds = {};
+    final Set<String> _deletedIds = {};
 
-  int? get _cardIdInt =>
-      widget.cardId != null ? int.tryParse(widget.cardId!) : null;
-  int? get _dirIdInt =>
-      widget.directoryId != null ? int.tryParse(widget.directoryId!) : null;
+    String? get _cardId =>
+      widget.cardId != null && widget.cardId!.isNotEmpty ? widget.cardId : null;
+    String? get _dirId =>
+      widget.directoryId != null && widget.directoryId!.isNotEmpty
+        ? widget.directoryId
+        : null;
 
   bool get _isEditing => _existing != null;
 
@@ -53,12 +54,11 @@ class _KnowledgeCardEditorScreenState
   }
 
   Future<void> _load() async {
-    final id = _cardIdInt;
+    final id = _cardId;
     if (id != null) {
       final repo = ref.read(knowledgeCardRepositoryProvider);
       final card = await repo.getById(id);
-      final imgs =
-          await ref.read(appDatabaseProvider).knowledgeCardDao.getImages(id);
+      final imgs = await repo.getImages(id);
       if (mounted) {
         setState(() {
           _existing = card;
@@ -83,7 +83,7 @@ class _KnowledgeCardEditorScreenState
   List<String> get _visiblePaths => [
         ..._savedImages
             .where((i) => !_deletedIds.contains(i.id))
-            .map((i) => i.localPath),
+              .map((i) => i.imagePath),
         ..._pendingPaths,
       ];
 
@@ -123,12 +123,8 @@ class _KnowledgeCardEditorScreenState
         // Remove deleted images
         for (final imgId in _deletedIds) {
           final img = _savedImages.firstWhere((i) => i.id == imgId);
-          final f = io.File(img.localPath);
-          if (f.existsSync()) f.deleteSync();
-          await ref
-              .read(appDatabaseProvider)
-              .knowledgeCardDao
-              .deleteImage(imgId);
+          await ref.read(imageServiceProvider).delete(img.imagePath);
+          await repo.removeImage(img);
         }
         // Add pending images
         final baseOrder = _savedImages.length - _deletedIds.length;
@@ -137,7 +133,7 @@ class _KnowledgeCardEditorScreenState
         }
       } else {
         final card = await repo.create(
-          directoryId: _dirIdInt!,
+          directoryId: _dirId!,
           title: title,
           contentMd: _contentController.text,
         );

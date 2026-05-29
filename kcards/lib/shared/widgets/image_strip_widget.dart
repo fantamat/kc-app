@@ -1,17 +1,16 @@
 import 'dart:io' as io;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:uuid/uuid.dart';
+
+import 'package:kcards/shared/providers/database_provider.dart';
 
 /// Horizontal image strip with an "add image" button and per-image delete
 /// buttons. [imagePaths] is the ordered list of local file paths to display.
 /// [onAddImage] is called with the path of a newly picked & compressed image.
 /// [onRemove] is called with the index in [imagePaths] to remove.
-class ImageStripWidget extends StatelessWidget {
+class ImageStripWidget extends ConsumerWidget {
   final List<String> imagePaths;
   final void Function(String path) onAddImage;
   final void Function(int index) onRemove;
@@ -25,27 +24,16 @@ class ImageStripWidget extends StatelessWidget {
     this.readOnly = false,
   });
 
-  Future<void> _pickAndCompress(
+  Future<void> _pickAndSave(
     BuildContext context,
+    WidgetRef ref,
     ImageSource source,
   ) async {
-    final xFile = await ImagePicker().pickImage(source: source);
-    if (xFile == null) return;
-
-    final docsDir = await getApplicationDocumentsDirectory();
-    final imagesDir = io.Directory(p.join(docsDir.path, 'card_images'));
-    if (!imagesDir.existsSync()) imagesDir.createSync(recursive: true);
-
-    final target = p.join(imagesDir.path, '${const Uuid().v4()}.jpg');
-    final result = await FlutterImageCompress.compressAndGetFile(
-      xFile.path,
-      target,
-      quality: 80,
-    );
-    if (result != null) onAddImage(result.path);
+    final path = await ref.read(imageServiceProvider).pickAndSave(source);
+    if (path != null) onAddImage(path);
   }
 
-  void _showSourceSheet(BuildContext context) {
+  void _showSourceSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet<void>(
       context: context,
       builder: (_) => SafeArea(
@@ -57,7 +45,7 @@ class ImageStripWidget extends StatelessWidget {
               title: const Text('Gallery'),
               onTap: () {
                 Navigator.pop(context);
-                _pickAndCompress(context, ImageSource.gallery);
+                _pickAndSave(context, ref, ImageSource.gallery);
               },
             ),
             ListTile(
@@ -65,7 +53,7 @@ class ImageStripWidget extends StatelessWidget {
               title: const Text('Camera'),
               onTap: () {
                 Navigator.pop(context);
-                _pickAndCompress(context, ImageSource.camera);
+                _pickAndSave(context, ref, ImageSource.camera);
               },
             ),
           ],
@@ -75,7 +63,7 @@ class ImageStripWidget extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       height: 104,
@@ -87,7 +75,7 @@ class ImageStripWidget extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: InkWell(
-                onTap: () => _showSourceSheet(context),
+                onTap: () => _showSourceSheet(context, ref),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   width: 80,
@@ -112,18 +100,33 @@ class ImageStripWidget extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      io.File(imagePaths[i]),
-                      width: 80,
-                      height: 88,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 80,
-                        height: 88,
-                        color: colorScheme.surfaceContainerHighest,
-                        child: const Icon(Icons.broken_image_outlined),
-                      ),
-                    ),
+                    child: imagePaths[i].startsWith('http')
+                        ? Image.network(
+                            imagePaths[i],
+                            width: 80,
+                            height: 88,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                              width: 80,
+                              height: 88,
+                              color: colorScheme.surfaceContainerHighest,
+                              child: const Icon(Icons.broken_image_outlined),
+                            ),
+                          )
+                        : Image.file(
+                            io.File(imagePaths[i]),
+                            width: 80,
+                            height: 88,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                              width: 80,
+                              height: 88,
+                              color: colorScheme.surfaceContainerHighest,
+                              child: const Icon(Icons.broken_image_outlined),
+                            ),
+                          ),
                   ),
                   if (!readOnly)
                     Positioned(

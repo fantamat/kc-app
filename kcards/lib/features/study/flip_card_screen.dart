@@ -52,18 +52,16 @@ class _FlipCardScreenState extends ConsumerState<FlipCardScreen>
   }
 
   Future<void> _record(bool correct) async {
-    final id = int.tryParse(widget.questionCardId);
-    if (id == null) return;
     await ref
         .read(studyProgressRepositoryProvider)
-        .recordReview(id, correct: correct);
+        .recordReview(widget.questionCardId, correct: correct);
     if (mounted) context.pop(correct);
   }
 
   @override
   Widget build(BuildContext context) {
-    final qcId = int.tryParse(widget.questionCardId);
-    if (qcId == null) {
+    final qcId = widget.questionCardId;
+    if (qcId.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Error')),
         body: const Center(child: Text('Invalid card ID')),
@@ -97,9 +95,9 @@ class _FlipCardScreenState extends ConsumerState<FlipCardScreen>
     final loadedQC = qcAsync.value!;
     final loadedKC = kcAsync.value;
     final qcImages =
-        qcImagesAsync?.valueOrNull?.map((i) => i.localPath).toList() ?? [];
+      qcImagesAsync?.valueOrNull?.map((i) => i.imagePath).toList() ?? [];
     final kcImages =
-        kcImagesAsync?.valueOrNull?.map((i) => i.localPath).toList() ?? [];
+      kcImagesAsync?.valueOrNull?.map((i) => i.imagePath).toList() ?? [];
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(

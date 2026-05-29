@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:kcards/data/database/database.dart';
+import 'package:kcards/data/models/question_card_model.dart';
 import 'package:kcards/features/study/flip_card_widget.dart';
 import 'package:kcards/features/study/study_providers.dart';
 import 'package:kcards/shared/providers/database_provider.dart';
@@ -28,8 +28,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen>
   late final AnimationController _controller;
   late final Animation<double> _animation;
 
-  List<QuestionCard>? _originalCards;
-  List<QuestionCard>? _remaining;
+  List<QuestionCardModel>? _originalCards;
+  List<QuestionCardModel>? _remaining;
   int _totalCount = 0;
   int _correctCount = 0;
   bool _flipped = false;
@@ -95,7 +95,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen>
 
   void _restart() {
     setState(() {
-      _remaining = List<QuestionCard>.from(_originalCards!)..shuffle(Random());
+      _remaining =
+          List<QuestionCardModel>.from(_originalCards!)..shuffle(Random());
       _correctCount = 0;
       _resetFlip();
     });
@@ -103,8 +104,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen>
 
   @override
   Widget build(BuildContext context) {
-    final dirId = int.tryParse(widget.directoryId);
-    if (dirId == null) {
+    final dirId = widget.directoryId;
+    if (dirId.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Error')),
         body: const Center(child: Text('Invalid directory ID')),
@@ -128,8 +129,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen>
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !_loaded) {
               setState(() {
-                _originalCards = List<QuestionCard>.from(cards);
-                _remaining = List<QuestionCard>.from(cards);
+                _originalCards = List<QuestionCardModel>.from(cards);
+                _remaining = List<QuestionCardModel>.from(cards);
                 _totalCount = cards.length;
                 _loaded = true;
               });
@@ -177,9 +178,9 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen>
     final resolved = _totalCount - _remaining!.length;
     final progress = resolved / _totalCount;
     final qcImages =
-        qcImagesAsync.valueOrNull?.map((i) => i.localPath).toList() ?? [];
+      qcImagesAsync.valueOrNull?.map((i) => i.imagePath).toList() ?? [];
     final kcImages =
-        kcImagesAsync?.valueOrNull?.map((i) => i.localPath).toList() ?? [];
+      kcImagesAsync?.valueOrNull?.map((i) => i.imagePath).toList() ?? [];
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(

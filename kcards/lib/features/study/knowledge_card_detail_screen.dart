@@ -3,7 +3,8 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:kcards/data/database/database.dart';
+import 'package:kcards/data/models/knowledge_card_model.dart';
+import 'package:kcards/data/models/question_card_model.dart';
 import 'package:kcards/features/study/study_providers.dart';
 import 'package:kcards/shared/providers/database_provider.dart';
 import 'package:kcards/shared/widgets/image_strip_widget.dart';
@@ -15,15 +16,14 @@ class KnowledgeCardDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final id = int.tryParse(cardId);
-    if (id == null) {
+    if (cardId.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Error')),
         body: const Center(child: Text('Invalid card ID')),
       );
     }
 
-    final cardAsync = ref.watch(knowledgeCardByIdProvider(id));
+    final cardAsync = ref.watch(knowledgeCardByIdProvider(cardId));
     return cardAsync.when(
       loading: () => Scaffold(
         appBar: AppBar(),
@@ -47,7 +47,7 @@ class KnowledgeCardDetailScreen extends ConsumerWidget {
 }
 
 class _KnowledgeCardDetailBody extends ConsumerWidget {
-  final KnowledgeCard card;
+  final KnowledgeCardModel card;
 
   const _KnowledgeCardDetailBody({required this.card});
 
@@ -86,7 +86,7 @@ class _KnowledgeCardDetailBody extends ConsumerWidget {
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: ImageStripWidget(
-                  imagePaths: images.map((i) => i.localPath).toList(),
+                  imagePaths: images.map((i) => i.imagePath).toList(),
                   onAddImage: (p) {},
                   onRemove: (i) {},
                   readOnly: true,
@@ -134,7 +134,7 @@ class _KnowledgeCardDetailBody extends ConsumerWidget {
 }
 
 class _QuestionCardTile extends ConsumerWidget {
-  final QuestionCard qc;
+  final QuestionCardModel qc;
 
   const _QuestionCardTile({required this.qc});
 

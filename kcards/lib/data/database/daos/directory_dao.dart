@@ -5,7 +5,7 @@ class DirectoryDao extends DatabaseAccessor<AppDatabase>
     with _$DirectoryDaoMixin {
   DirectoryDao(super.db);
 
-  Stream<List<DirectoryEntry>> watchByParent(int? parentId) =>
+  Stream<List<DirectoryEntry>> watchByParent(String? parentId) =>
       (select(directories)
             ..where(
               (t) => parentId == null
@@ -16,15 +16,15 @@ class DirectoryDao extends DatabaseAccessor<AppDatabase>
 
   Future<List<DirectoryEntry>> getAll() => select(directories).get();
 
-  Future<DirectoryEntry?> getById(int id) =>
+  Future<DirectoryEntry?> getById(String id) =>
       (select(directories)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<int> insertDirectory(DirectoriesCompanion entry) =>
-      into(directories).insert(entry);
+  Future<void> insertDirectory(DirectoriesCompanion entry) =>
+      into(directories).insert(entry).then((_) {});
 
   Future<bool> updateDirectory(DirectoriesCompanion entry) =>
       update(directories).replace(entry);
 
-  Future<int> deleteById(int id) =>
-      (delete(directories)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteById(String id) =>
+      (delete(directories)..where((t) => t.id.equals(id))).go().then((_) {});
 }

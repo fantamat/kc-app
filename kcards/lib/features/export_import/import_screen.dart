@@ -41,12 +41,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       final content = await io.File(path).readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
 
-      final db = ref.read(appDatabaseProvider);
       final serializer = SubtreeSerializer(
-        db: db,
         dirRepo: ref.read(directoryRepositoryProvider),
         kcRepo: ref.read(knowledgeCardRepositoryProvider),
         qcRepo: ref.read(questionCardRepositoryProvider),
+        imageService: ref.read(imageServiceProvider),
       );
 
       await serializer.importSubtree(json, null);

@@ -2,13 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:kcards/data/database/database.dart';
+import 'package:kcards/data/models/directory_model.dart';
+import 'package:kcards/data/models/knowledge_card_model.dart';
 import 'package:kcards/features/tree_browser/tree_browser_providers.dart';
+import 'package:kcards/shared/providers/auth_providers.dart';
 import 'package:kcards/shared/providers/database_provider.dart';
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
-enum _AppBarAction { studyDir, studySubtree, export, importCards }
+enum _AppBarAction {
+  studyDir,
+  studySubtree,
+  export,
+  importCards,
+  switchToSignIn,
+  signOut,
+}
 
 enum _DirAction { rename, delete }
 
@@ -19,7 +28,7 @@ enum _CardAction { edit, addQuestion, delete }
 Future<void> _showCreateDirDialog(
   BuildContext context,
   WidgetRef ref,
-  int? parentId,
+  String? parentId,
 ) async {
   final ctrl = TextEditingController();
   final name = await showDialog<String>(
@@ -54,7 +63,7 @@ Future<void> _showCreateDirDialog(
 Future<void> _showRenameDirDialog(
   BuildContext context,
   WidgetRef ref,
-  DirectoryEntry dir,
+  DirectoryModel dir,
 ) async {
   final ctrl = TextEditingController(text: dir.name);
   final name = await showDialog<String>(
@@ -87,7 +96,7 @@ Future<void> _showRenameDirDialog(
 Future<void> _showDeleteDirDialog(
   BuildContext context,
   WidgetRef ref,
-  DirectoryEntry dir,
+  DirectoryModel dir,
 ) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -118,7 +127,7 @@ Future<void> _showDeleteDirDialog(
 Future<void> _showDeleteCardDialog(
   BuildContext context,
   WidgetRef ref,
-  KnowledgeCard card,
+  KnowledgeCardModel card,
 ) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -158,15 +167,18 @@ class TreeBrowserScreen extends ConsumerWidget {
 
   const TreeBrowserScreen({super.key, this.directoryId});
 
-  int? get _dirId => int.tryParse(directoryId ?? '');
+  String? get _dirId =>
+      directoryId != null && directoryId!.isNotEmpty ? directoryId : null;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dirId = _dirId;
+    final authStatus = ref.watch(authStatusProvider);
+    final user = ref.watch(currentUserProvider).valueOrNull;
 
     final subdirs = ref.watch(childDirsProvider(dirId));
     final cards = dirId == null
-        ? const AsyncData<List<KnowledgeCard>>([])
+      ? const AsyncData<List<KnowledgeCardModel>>([])
         : ref.watch(dirKnowledgeCardsProvider(dirId));
     final breadcrumbs = ref.watch(breadcrumbProvider(dirId));
 
@@ -176,9 +188,17 @@ class TreeBrowserScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(currentDirName ?? 'KCards'),
         actions: [
+          if (authStatus != AuthStatus.loading)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _AccountStatusChip(
+                status: authStatus,
+                email: user?.email,
+              ),
+            ),
           PopupMenuButton<_AppBarAction>(
             onSelected: (action) =>
-                _handleAppBarAction(context, action, dirId),
+                _handleAppBarAction(context, ref, action, dirId),
             itemBuilder: (_) => [
               if (dirId != null) ...[
                 const PopupMenuItem(
@@ -199,6 +219,17 @@ class TreeBrowserScreen extends ConsumerWidget {
                 value: _AppBarAction.importCards,
                 child: Text('Import'),
               ),
+              const PopupMenuDivider(),
+              if (authStatus == AuthStatus.guest)
+                const PopupMenuItem(
+                  value: _AppBarAction.switchToSignIn,
+                  child: Text('Sign in to cloud account'),
+                ),
+              if (authStatus == AuthStatus.authenticated)
+                const PopupMenuItem(
+                  value: _AppBarAction.signOut,
+                  child: Text('Sign out'),
+                ),
             ],
           ),
         ],
@@ -232,9 +263,10 @@ class TreeBrowserScreen extends ConsumerWidget {
 
   void _handleAppBarAction(
     BuildContext context,
+    WidgetRef ref,
     _AppBarAction action,
-    int? dirId,
-  ) {
+    String? dirId,
+  ) async {
     switch (action) {
       case _AppBarAction.studyDir:
         context.push('/study/session?dirId=$dirId');
@@ -244,15 +276,20 @@ class TreeBrowserScreen extends ConsumerWidget {
         context.push(dirId != null ? '/export?dirId=$dirId' : '/export');
       case _AppBarAction.importCards:
         context.push('/import');
+      case _AppBarAction.switchToSignIn:
+        await ref.read(guestModeProvider.notifier).setGuestMode(false);
+      case _AppBarAction.signOut:
+        await ref.read(firebaseAuthProvider).signOut();
+        await ref.read(guestModeProvider.notifier).setGuestMode(false);
     }
   }
 
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<List<DirectoryEntry>> subdirs,
-    AsyncValue<List<KnowledgeCard>> cards,
-    int? dirId,
+    AsyncValue<List<DirectoryModel>> subdirs,
+    AsyncValue<List<KnowledgeCardModel>> cards,
+    String? dirId,
   ) {
     if (subdirs.isLoading || cards.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -292,6 +329,42 @@ class TreeBrowserScreen extends ConsumerWidget {
   }
 }
 
+class _AccountStatusChip extends StatelessWidget {
+  const _AccountStatusChip({
+    required this.status,
+    required this.email,
+  });
+
+  final AuthStatus status;
+  final String? email;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isGuest = status == AuthStatus.guest;
+    final label = isGuest ? 'Guest' : (email ?? 'Signed in');
+
+    return Chip(
+      visualDensity: VisualDensity.compact,
+      avatar: Icon(
+        isGuest ? Icons.person_outline : Icons.cloud_done_outlined,
+        size: 16,
+        color: colorScheme.onSecondaryContainer,
+      ),
+      label: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 140),
+        child: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      side: BorderSide.none,
+      backgroundColor: colorScheme.secondaryContainer,
+      labelStyle: TextStyle(color: colorScheme.onSecondaryContainer),
+    );
+  }
+}
+
 // ── Section header ────────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
@@ -315,7 +388,7 @@ class _SectionHeader extends StatelessWidget {
 // ── Breadcrumb bar ────────────────────────────────────────────────────────────
 
 class _BreadcrumbBar extends StatelessWidget {
-  final AsyncValue<List<DirectoryEntry>> breadcrumbs;
+  final AsyncValue<List<DirectoryModel>> breadcrumbs;
   const _BreadcrumbBar({required this.breadcrumbs});
 
   @override
@@ -361,7 +434,7 @@ class _BreadcrumbBar extends StatelessWidget {
 // ── Directory tile ────────────────────────────────────────────────────────────
 
 class _DirTile extends ConsumerWidget {
-  final DirectoryEntry dir;
+  final DirectoryModel dir;
   const _DirTile({required this.dir});
 
   @override
@@ -402,7 +475,7 @@ class _DirTile extends ConsumerWidget {
 // ── Knowledge card tile ───────────────────────────────────────────────────────
 
 class _KnowledgeCardTile extends ConsumerWidget {
-  final KnowledgeCard card;
+  final KnowledgeCardModel card;
   const _KnowledgeCardTile({required this.card});
 
   @override

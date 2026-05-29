@@ -1,34 +1,33 @@
 import 'dart:convert';
-import 'dart:io' as io;
 
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-
-import '../database/database.dart';
-import '../repositories/directory_repository.dart';
-import '../repositories/knowledge_card_repository.dart';
-import '../repositories/question_card_repository.dart';
+import 'package:kcards/data/models/card_image_model.dart';
+import 'package:kcards/data/models/knowledge_card_model.dart';
+import 'package:kcards/data/models/question_card_model.dart';
+import 'package:kcards/data/repositories/interfaces/i_directory_repository.dart';
+import 'package:kcards/data/repositories/interfaces/i_knowledge_card_repository.dart';
+import 'package:kcards/data/repositories/interfaces/i_question_card_repository.dart';
+import 'package:kcards/data/services/image_service.dart';
 
 class SubtreeSerializer {
   SubtreeSerializer({
-    required AppDatabase db,
-    required DirectoryRepository dirRepo,
-    required KnowledgeCardRepository kcRepo,
-    required QuestionCardRepository qcRepo,
-  })  : _db = db,
-        _dirRepo = dirRepo,
+    required IDirectoryRepository dirRepo,
+    required IKnowledgeCardRepository kcRepo,
+    required IQuestionCardRepository qcRepo,
+    required ImageService imageService,
+  })  : _dirRepo = dirRepo,
         _kcRepo = kcRepo,
-        _qcRepo = qcRepo;
+        _qcRepo = qcRepo,
+        _imageService = imageService;
 
-  final AppDatabase _db;
-  final DirectoryRepository _dirRepo;
-  final KnowledgeCardRepository _kcRepo;
-  final QuestionCardRepository _qcRepo;
+  final IDirectoryRepository _dirRepo;
+  final IKnowledgeCardRepository _kcRepo;
+  final IQuestionCardRepository _qcRepo;
+  final ImageService _imageService;
 
   // ── Export ────────────────────────────────────────────────────────────────
 
   /// Serializes [directoryId] and all its descendants to a JSON-encodable map.
-  Future<Map<String, dynamic>> exportSubtree(int directoryId) async {
+  Future<Map<String, dynamic>> exportSubtree(String directoryId) async {
     final dir = await _dirRepo.getById(directoryId);
     if (dir == null) throw ArgumentError('Directory $directoryId not found');
     return {
@@ -38,12 +37,12 @@ class SubtreeSerializer {
     };
   }
 
-  Future<Map<String, dynamic>> _exportDir(int dirId, String name) async {
-    final allDirs = await _db.directoryDao.getAll();
+  Future<Map<String, dynamic>> _exportDir(String dirId, String name) async {
+    final allDirs = await _dirRepo.getAll();
     final children = allDirs.where((d) => d.parentId == dirId).toList();
 
     final kcs = await _kcRepo.getByDirectory(dirId);
-    final allQcs = await _db.questionCardDao.getByDirectoryIds([dirId]);
+    final allQcs = await _qcRepo.getByDirectoryIds([dirId]);
 
     final kcMaps = await Future.wait(
       kcs.map((kc) {
@@ -64,10 +63,10 @@ class SubtreeSerializer {
   }
 
   Future<Map<String, dynamic>> _exportKc(
-    KnowledgeCard kc,
-    List<QuestionCard> qcs,
+    KnowledgeCardModel kc,
+    List<QuestionCardModel> qcs,
   ) async {
-    final images = await _db.knowledgeCardDao.getImages(kc.id);
+    final images = await _kcRepo.getImages(kc.id);
     return {
       'title': kc.title,
       'contentMd': kc.contentMd,
@@ -78,8 +77,8 @@ class SubtreeSerializer {
     };
   }
 
-  Future<Map<String, dynamic>> _exportQc(QuestionCard qc) async {
-    final images = await _db.questionCardDao.getImages(qc.id);
+  Future<Map<String, dynamic>> _exportQc(QuestionCardModel qc) async {
+    final images = await _qcRepo.getImages(qc.id);
     return {
       'title': qc.title,
       'questionMd': qc.questionMd,
@@ -89,16 +88,16 @@ class SubtreeSerializer {
     };
   }
 
-  Future<String?> _encodeKcImage(KnowledgeCardImage img) async {
-    final file = io.File(img.localPath);
-    if (!file.existsSync()) return null;
-    return base64Encode(await file.readAsBytes());
+  Future<String?> _encodeKcImage(CardImageModel img) async {
+    final bytes = await _imageService.readBytes(img.imagePath);
+    if (bytes == null) return null;
+    return base64Encode(bytes);
   }
 
-  Future<String?> _encodeQcImage(QuestionCardImage img) async {
-    final file = io.File(img.localPath);
-    if (!file.existsSync()) return null;
-    return base64Encode(await file.readAsBytes());
+  Future<String?> _encodeQcImage(CardImageModel img) async {
+    final bytes = await _imageService.readBytes(img.imagePath);
+    if (bytes == null) return null;
+    return base64Encode(bytes);
   }
 
   // ── Import ────────────────────────────────────────────────────────────────
@@ -107,7 +106,7 @@ class SubtreeSerializer {
   /// Skips directories/knowledge cards that already exist at the same level.
   Future<void> importSubtree(
     Map<String, dynamic> json,
-    int? parentId,
+    String? parentId,
   ) async {
     final version = json['version'] as int?;
     if (version != 1) {
@@ -117,11 +116,11 @@ class SubtreeSerializer {
     await _importDir(dirData, parentId);
   }
 
-  Future<void> _importDir(Map<String, dynamic> data, int? parentId) async {
+  Future<void> _importDir(Map<String, dynamic> data, String? parentId) async {
     final name = data['name'] as String;
 
     // Reuse existing directory with same name under same parent.
-    final allDirs = await _db.directoryDao.getAll();
+    final allDirs = await _dirRepo.getAll();
     final existing =
         allDirs.where((d) => d.parentId == parentId && d.name == name).firstOrNull;
     final dir = existing ?? await _dirRepo.create(name: name, parentId: parentId);
@@ -137,7 +136,7 @@ class SubtreeSerializer {
     }
   }
 
-  Future<void> _importKc(Map<String, dynamic> data, int dirId) async {
+  Future<void> _importKc(Map<String, dynamic> data, String dirId) async {
     final title = data['title'] as String;
     final contentMd = data['contentMd'] as String? ?? '';
 
@@ -167,8 +166,8 @@ class SubtreeSerializer {
 
   Future<void> _importQc(
     Map<String, dynamic> data,
-    int dirId,
-    int kcId,
+    String dirId,
+    String kcId,
   ) async {
     final title = data['title'] as String? ?? '';
     final questionMd = data['questionMd'] as String? ?? '';
@@ -189,10 +188,6 @@ class SubtreeSerializer {
   }
 
   Future<String> _saveBase64Image(String b64, String prefix) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    final filePath = p.join(dir.path, 'import_${prefix}_$ts.jpg');
-    await io.File(filePath).writeAsBytes(base64Decode(b64));
-    return filePath;
+    return _imageService.saveBytes(base64Decode(b64), 'import_$prefix');
   }
 }

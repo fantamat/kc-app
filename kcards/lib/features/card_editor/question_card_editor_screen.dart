@@ -1,9 +1,9 @@
-import 'dart:io' as io;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kcards/data/database/database.dart';
+import 'package:kcards/data/models/card_image_model.dart';
+import 'package:kcards/data/models/knowledge_card_model.dart';
+import 'package:kcards/data/models/question_card_model.dart';
 import 'package:kcards/shared/providers/database_provider.dart';
 import 'package:kcards/shared/widgets/image_strip_widget.dart';
 import 'package:kcards/shared/widgets/markdown_editor_widget.dart';
@@ -35,17 +35,17 @@ class _QuestionCardEditorScreenState
   bool _loading = true;
   bool _saving = false;
 
-  QuestionCard? _existing;
-  int? _directoryId;
-  int? _selectedKcId;
-  List<KnowledgeCard> _knowledgeCards = [];
+    QuestionCardModel? _existing;
+    String? _directoryId;
+    String? _selectedKcId;
+    List<KnowledgeCardModel> _knowledgeCards = [];
 
-  List<QuestionCardImage> _savedImages = [];
+    List<CardImageModel> _savedImages = [];
   final List<String> _pendingPaths = [];
-  final Set<int> _deletedIds = {};
+    final Set<String> _deletedIds = {};
 
-  int? get _cardIdInt =>
-      widget.cardId != null ? int.tryParse(widget.cardId!) : null;
+    String? get _cardId =>
+      widget.cardId != null && widget.cardId!.isNotEmpty ? widget.cardId : null;
 
   bool get _isEditing => _existing != null;
 
@@ -59,7 +59,7 @@ class _QuestionCardEditorScreenState
     final qRepo = ref.read(questionCardRepositoryProvider);
     final kcRepo = ref.read(knowledgeCardRepositoryProvider);
 
-    final id = _cardIdInt;
+    final id = _cardId;
     if (id != null) {
       // Edit mode: load existing card
       final card = await qRepo.getById(id);
@@ -69,17 +69,18 @@ class _QuestionCardEditorScreenState
         _titleController.text = card.title;
         _questionController.text = card.questionMd;
         _existing = card;
-        _savedImages =
-            await ref.read(appDatabaseProvider).questionCardDao.getImages(id);
+        _savedImages = await qRepo.getImages(id);
       }
     } else {
       // Create mode
-      _directoryId = widget.directoryId != null
-          ? int.tryParse(widget.directoryId!)
-          : null;
-      _selectedKcId = widget.knowledgeCardId != null
-          ? int.tryParse(widget.knowledgeCardId!)
-          : null;
+        _directoryId =
+          widget.directoryId != null && widget.directoryId!.isNotEmpty
+            ? widget.directoryId
+            : null;
+        _selectedKcId =
+          widget.knowledgeCardId != null && widget.knowledgeCardId!.isNotEmpty
+            ? widget.knowledgeCardId
+            : null;
     }
 
     if (_directoryId != null) {
@@ -99,7 +100,7 @@ class _QuestionCardEditorScreenState
   List<String> get _visiblePaths => [
         ..._savedImages
             .where((i) => !_deletedIds.contains(i.id))
-            .map((i) => i.localPath),
+              .map((i) => i.imagePath),
         ..._pendingPaths,
       ];
 
@@ -146,12 +147,8 @@ class _QuestionCardEditorScreenState
         );
         for (final imgId in _deletedIds) {
           final img = _savedImages.firstWhere((i) => i.id == imgId);
-          final f = io.File(img.localPath);
-          if (f.existsSync()) f.deleteSync();
-          await ref
-              .read(appDatabaseProvider)
-              .questionCardDao
-              .deleteImage(imgId);
+          await ref.read(imageServiceProvider).delete(img.imagePath);
+          await repo.removeImage(img);
         }
         final baseOrder = _savedImages.length - _deletedIds.length;
         for (int i = 0; i < _pendingPaths.length; i++) {
@@ -218,7 +215,7 @@ class _QuestionCardEditorScreenState
                     contentPadding:
                         EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   ),
-                  child: DropdownButton<int>(
+                  child: DropdownButton<String>(
                     value: _knowledgeCards.any((kc) => kc.id == _selectedKcId)
                         ? _selectedKcId
                         : null,

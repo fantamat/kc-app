@@ -11,16 +11,12 @@ class $DirectoriesTable extends Directories
   $DirectoriesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -35,11 +31,11 @@ class $DirectoriesTable extends Directories
     'parentId',
   );
   @override
-  late final GeneratedColumn<int> parentId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
     'parent_id',
     aliasedName,
     true,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
@@ -69,6 +65,8 @@ class $DirectoriesTable extends Directories
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -102,7 +100,7 @@ class $DirectoriesTable extends Directories
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return DirectoryEntry(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       name: attachedDatabase.typeMapping.read(
@@ -110,7 +108,7 @@ class $DirectoriesTable extends Directories
         data['${effectivePrefix}name'],
       )!,
       parentId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}parent_id'],
       ),
       createdAt: attachedDatabase.typeMapping.read(
@@ -127,9 +125,9 @@ class $DirectoriesTable extends Directories
 }
 
 class DirectoryEntry extends DataClass implements Insertable<DirectoryEntry> {
-  final int id;
+  final String id;
   final String name;
-  final int? parentId;
+  final String? parentId;
   final DateTime createdAt;
   const DirectoryEntry({
     required this.id,
@@ -140,10 +138,10 @@ class DirectoryEntry extends DataClass implements Insertable<DirectoryEntry> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
+    map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || parentId != null) {
-      map['parent_id'] = Variable<int>(parentId);
+      map['parent_id'] = Variable<String>(parentId);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -166,9 +164,9 @@ class DirectoryEntry extends DataClass implements Insertable<DirectoryEntry> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return DirectoryEntry(
-      id: serializer.fromJson<int>(json['id']),
+      id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      parentId: serializer.fromJson<int?>(json['parentId']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -176,17 +174,17 @@ class DirectoryEntry extends DataClass implements Insertable<DirectoryEntry> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
+      'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
-      'parentId': serializer.toJson<int?>(parentId),
+      'parentId': serializer.toJson<String?>(parentId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
 
   DirectoryEntry copyWith({
-    int? id,
+    String? id,
     String? name,
-    Value<int?> parentId = const Value.absent(),
+    Value<String?> parentId = const Value.absent(),
     DateTime? createdAt,
   }) => DirectoryEntry(
     id: id ?? this.id,
@@ -227,48 +225,56 @@ class DirectoryEntry extends DataClass implements Insertable<DirectoryEntry> {
 }
 
 class DirectoriesCompanion extends UpdateCompanion<DirectoryEntry> {
-  final Value<int> id;
+  final Value<String> id;
   final Value<String> name;
-  final Value<int?> parentId;
+  final Value<String?> parentId;
   final Value<DateTime> createdAt;
+  final Value<int> rowid;
   const DirectoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.parentId = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   DirectoriesCompanion.insert({
-    this.id = const Value.absent(),
+    required String id,
     required String name,
     this.parentId = const Value.absent(),
     required DateTime createdAt,
-  }) : name = Value(name),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
        createdAt = Value(createdAt);
   static Insertable<DirectoryEntry> custom({
-    Expression<int>? id,
+    Expression<String>? id,
     Expression<String>? name,
-    Expression<int>? parentId,
+    Expression<String>? parentId,
     Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (parentId != null) 'parent_id': parentId,
       if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   DirectoriesCompanion copyWith({
-    Value<int>? id,
+    Value<String>? id,
     Value<String>? name,
-    Value<int?>? parentId,
+    Value<String?>? parentId,
     Value<DateTime>? createdAt,
+    Value<int>? rowid,
   }) {
     return DirectoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       parentId: parentId ?? this.parentId,
       createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -276,16 +282,19 @@ class DirectoriesCompanion extends UpdateCompanion<DirectoryEntry> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
     if (parentId.present) {
-      map['parent_id'] = Variable<int>(parentId.value);
+      map['parent_id'] = Variable<String>(parentId.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -296,7 +305,8 @@ class DirectoriesCompanion extends UpdateCompanion<DirectoryEntry> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('parentId: $parentId, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -310,26 +320,22 @@ class $KnowledgeCardsTable extends KnowledgeCards
   $KnowledgeCardsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _directoryIdMeta = const VerificationMeta(
     'directoryId',
   );
   @override
-  late final GeneratedColumn<int> directoryId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> directoryId = GeneratedColumn<String>(
     'directory_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
@@ -398,6 +404,8 @@ class $KnowledgeCardsTable extends KnowledgeCards
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('directory_id')) {
       context.handle(
@@ -450,11 +458,11 @@ class $KnowledgeCardsTable extends KnowledgeCards
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return KnowledgeCard(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       directoryId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}directory_id'],
       )!,
       title: attachedDatabase.typeMapping.read(
@@ -483,8 +491,8 @@ class $KnowledgeCardsTable extends KnowledgeCards
 }
 
 class KnowledgeCard extends DataClass implements Insertable<KnowledgeCard> {
-  final int id;
-  final int directoryId;
+  final String id;
+  final String directoryId;
   final String title;
   final String contentMd;
   final DateTime createdAt;
@@ -500,8 +508,8 @@ class KnowledgeCard extends DataClass implements Insertable<KnowledgeCard> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['directory_id'] = Variable<int>(directoryId);
+    map['id'] = Variable<String>(id);
+    map['directory_id'] = Variable<String>(directoryId);
     map['title'] = Variable<String>(title);
     map['content_md'] = Variable<String>(contentMd);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -526,8 +534,8 @@ class KnowledgeCard extends DataClass implements Insertable<KnowledgeCard> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return KnowledgeCard(
-      id: serializer.fromJson<int>(json['id']),
-      directoryId: serializer.fromJson<int>(json['directoryId']),
+      id: serializer.fromJson<String>(json['id']),
+      directoryId: serializer.fromJson<String>(json['directoryId']),
       title: serializer.fromJson<String>(json['title']),
       contentMd: serializer.fromJson<String>(json['contentMd']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -538,8 +546,8 @@ class KnowledgeCard extends DataClass implements Insertable<KnowledgeCard> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'directoryId': serializer.toJson<int>(directoryId),
+      'id': serializer.toJson<String>(id),
+      'directoryId': serializer.toJson<String>(directoryId),
       'title': serializer.toJson<String>(title),
       'contentMd': serializer.toJson<String>(contentMd),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -548,8 +556,8 @@ class KnowledgeCard extends DataClass implements Insertable<KnowledgeCard> {
   }
 
   KnowledgeCard copyWith({
-    int? id,
-    int? directoryId,
+    String? id,
+    String? directoryId,
     String? title,
     String? contentMd,
     DateTime? createdAt,
@@ -604,12 +612,13 @@ class KnowledgeCard extends DataClass implements Insertable<KnowledgeCard> {
 }
 
 class KnowledgeCardsCompanion extends UpdateCompanion<KnowledgeCard> {
-  final Value<int> id;
-  final Value<int> directoryId;
+  final Value<String> id;
+  final Value<String> directoryId;
   final Value<String> title;
   final Value<String> contentMd;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<int> rowid;
   const KnowledgeCardsCompanion({
     this.id = const Value.absent(),
     this.directoryId = const Value.absent(),
@@ -617,25 +626,29 @@ class KnowledgeCardsCompanion extends UpdateCompanion<KnowledgeCard> {
     this.contentMd = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   KnowledgeCardsCompanion.insert({
-    this.id = const Value.absent(),
-    required int directoryId,
+    required String id,
+    required String directoryId,
     required String title,
     this.contentMd = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
-  }) : directoryId = Value(directoryId),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       directoryId = Value(directoryId),
        title = Value(title),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<KnowledgeCard> custom({
-    Expression<int>? id,
-    Expression<int>? directoryId,
+    Expression<String>? id,
+    Expression<String>? directoryId,
     Expression<String>? title,
     Expression<String>? contentMd,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -644,16 +657,18 @@ class KnowledgeCardsCompanion extends UpdateCompanion<KnowledgeCard> {
       if (contentMd != null) 'content_md': contentMd,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   KnowledgeCardsCompanion copyWith({
-    Value<int>? id,
-    Value<int>? directoryId,
+    Value<String>? id,
+    Value<String>? directoryId,
     Value<String>? title,
     Value<String>? contentMd,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<int>? rowid,
   }) {
     return KnowledgeCardsCompanion(
       id: id ?? this.id,
@@ -662,6 +677,7 @@ class KnowledgeCardsCompanion extends UpdateCompanion<KnowledgeCard> {
       contentMd: contentMd ?? this.contentMd,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -669,10 +685,10 @@ class KnowledgeCardsCompanion extends UpdateCompanion<KnowledgeCard> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (directoryId.present) {
-      map['directory_id'] = Variable<int>(directoryId.value);
+      map['directory_id'] = Variable<String>(directoryId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -686,6 +702,9 @@ class KnowledgeCardsCompanion extends UpdateCompanion<KnowledgeCard> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -697,7 +716,8 @@ class KnowledgeCardsCompanion extends UpdateCompanion<KnowledgeCard> {
           ..write('title: $title, ')
           ..write('contentMd: $contentMd, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -711,34 +731,30 @@ class $KnowledgeCardImagesTable extends KnowledgeCardImages
   $KnowledgeCardImagesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _knowledgeCardIdMeta = const VerificationMeta(
     'knowledgeCardId',
   );
   @override
-  late final GeneratedColumn<int> knowledgeCardId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> knowledgeCardId = GeneratedColumn<String>(
     'knowledge_card_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _localPathMeta = const VerificationMeta(
-    'localPath',
+  static const VerificationMeta _imagePathMeta = const VerificationMeta(
+    'imagePath',
   );
   @override
-  late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
-    'local_path',
+  late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
+    'image_path',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -760,7 +776,7 @@ class $KnowledgeCardImagesTable extends KnowledgeCardImages
   List<GeneratedColumn> get $columns => [
     id,
     knowledgeCardId,
-    localPath,
+    imagePath,
     sortOrder,
   ];
   @override
@@ -777,6 +793,8 @@ class $KnowledgeCardImagesTable extends KnowledgeCardImages
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('knowledge_card_id')) {
       context.handle(
@@ -789,13 +807,13 @@ class $KnowledgeCardImagesTable extends KnowledgeCardImages
     } else if (isInserting) {
       context.missing(_knowledgeCardIdMeta);
     }
-    if (data.containsKey('local_path')) {
+    if (data.containsKey('image_path')) {
       context.handle(
-        _localPathMeta,
-        localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
+        _imagePathMeta,
+        imagePath.isAcceptableOrUnknown(data['image_path']!, _imagePathMeta),
       );
     } else if (isInserting) {
-      context.missing(_localPathMeta);
+      context.missing(_imagePathMeta);
     }
     if (data.containsKey('sort_order')) {
       context.handle(
@@ -813,16 +831,16 @@ class $KnowledgeCardImagesTable extends KnowledgeCardImages
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return KnowledgeCardImage(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       knowledgeCardId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}knowledge_card_id'],
       )!,
-      localPath: attachedDatabase.typeMapping.read(
+      imagePath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}local_path'],
+        data['${effectivePrefix}image_path'],
       )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -839,22 +857,22 @@ class $KnowledgeCardImagesTable extends KnowledgeCardImages
 
 class KnowledgeCardImage extends DataClass
     implements Insertable<KnowledgeCardImage> {
-  final int id;
-  final int knowledgeCardId;
-  final String localPath;
+  final String id;
+  final String knowledgeCardId;
+  final String imagePath;
   final int sortOrder;
   const KnowledgeCardImage({
     required this.id,
     required this.knowledgeCardId,
-    required this.localPath,
+    required this.imagePath,
     required this.sortOrder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['knowledge_card_id'] = Variable<int>(knowledgeCardId);
-    map['local_path'] = Variable<String>(localPath);
+    map['id'] = Variable<String>(id);
+    map['knowledge_card_id'] = Variable<String>(knowledgeCardId);
+    map['image_path'] = Variable<String>(imagePath);
     map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
@@ -863,7 +881,7 @@ class KnowledgeCardImage extends DataClass
     return KnowledgeCardImagesCompanion(
       id: Value(id),
       knowledgeCardId: Value(knowledgeCardId),
-      localPath: Value(localPath),
+      imagePath: Value(imagePath),
       sortOrder: Value(sortOrder),
     );
   }
@@ -874,9 +892,9 @@ class KnowledgeCardImage extends DataClass
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return KnowledgeCardImage(
-      id: serializer.fromJson<int>(json['id']),
-      knowledgeCardId: serializer.fromJson<int>(json['knowledgeCardId']),
-      localPath: serializer.fromJson<String>(json['localPath']),
+      id: serializer.fromJson<String>(json['id']),
+      knowledgeCardId: serializer.fromJson<String>(json['knowledgeCardId']),
+      imagePath: serializer.fromJson<String>(json['imagePath']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
@@ -884,22 +902,22 @@ class KnowledgeCardImage extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'knowledgeCardId': serializer.toJson<int>(knowledgeCardId),
-      'localPath': serializer.toJson<String>(localPath),
+      'id': serializer.toJson<String>(id),
+      'knowledgeCardId': serializer.toJson<String>(knowledgeCardId),
+      'imagePath': serializer.toJson<String>(imagePath),
       'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
   KnowledgeCardImage copyWith({
-    int? id,
-    int? knowledgeCardId,
-    String? localPath,
+    String? id,
+    String? knowledgeCardId,
+    String? imagePath,
     int? sortOrder,
   }) => KnowledgeCardImage(
     id: id ?? this.id,
     knowledgeCardId: knowledgeCardId ?? this.knowledgeCardId,
-    localPath: localPath ?? this.localPath,
+    imagePath: imagePath ?? this.imagePath,
     sortOrder: sortOrder ?? this.sortOrder,
   );
   KnowledgeCardImage copyWithCompanion(KnowledgeCardImagesCompanion data) {
@@ -908,7 +926,7 @@ class KnowledgeCardImage extends DataClass
       knowledgeCardId: data.knowledgeCardId.present
           ? data.knowledgeCardId.value
           : this.knowledgeCardId,
-      localPath: data.localPath.present ? data.localPath.value : this.localPath,
+      imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
@@ -918,67 +936,75 @@ class KnowledgeCardImage extends DataClass
     return (StringBuffer('KnowledgeCardImage(')
           ..write('id: $id, ')
           ..write('knowledgeCardId: $knowledgeCardId, ')
-          ..write('localPath: $localPath, ')
+          ..write('imagePath: $imagePath, ')
           ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, knowledgeCardId, localPath, sortOrder);
+  int get hashCode => Object.hash(id, knowledgeCardId, imagePath, sortOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is KnowledgeCardImage &&
           other.id == this.id &&
           other.knowledgeCardId == this.knowledgeCardId &&
-          other.localPath == this.localPath &&
+          other.imagePath == this.imagePath &&
           other.sortOrder == this.sortOrder);
 }
 
 class KnowledgeCardImagesCompanion extends UpdateCompanion<KnowledgeCardImage> {
-  final Value<int> id;
-  final Value<int> knowledgeCardId;
-  final Value<String> localPath;
+  final Value<String> id;
+  final Value<String> knowledgeCardId;
+  final Value<String> imagePath;
   final Value<int> sortOrder;
+  final Value<int> rowid;
   const KnowledgeCardImagesCompanion({
     this.id = const Value.absent(),
     this.knowledgeCardId = const Value.absent(),
-    this.localPath = const Value.absent(),
+    this.imagePath = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   KnowledgeCardImagesCompanion.insert({
-    this.id = const Value.absent(),
-    required int knowledgeCardId,
-    required String localPath,
+    required String id,
+    required String knowledgeCardId,
+    required String imagePath,
     this.sortOrder = const Value.absent(),
-  }) : knowledgeCardId = Value(knowledgeCardId),
-       localPath = Value(localPath);
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       knowledgeCardId = Value(knowledgeCardId),
+       imagePath = Value(imagePath);
   static Insertable<KnowledgeCardImage> custom({
-    Expression<int>? id,
-    Expression<int>? knowledgeCardId,
-    Expression<String>? localPath,
+    Expression<String>? id,
+    Expression<String>? knowledgeCardId,
+    Expression<String>? imagePath,
     Expression<int>? sortOrder,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (knowledgeCardId != null) 'knowledge_card_id': knowledgeCardId,
-      if (localPath != null) 'local_path': localPath,
+      if (imagePath != null) 'image_path': imagePath,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   KnowledgeCardImagesCompanion copyWith({
-    Value<int>? id,
-    Value<int>? knowledgeCardId,
-    Value<String>? localPath,
+    Value<String>? id,
+    Value<String>? knowledgeCardId,
+    Value<String>? imagePath,
     Value<int>? sortOrder,
+    Value<int>? rowid,
   }) {
     return KnowledgeCardImagesCompanion(
       id: id ?? this.id,
       knowledgeCardId: knowledgeCardId ?? this.knowledgeCardId,
-      localPath: localPath ?? this.localPath,
+      imagePath: imagePath ?? this.imagePath,
       sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -986,16 +1012,19 @@ class KnowledgeCardImagesCompanion extends UpdateCompanion<KnowledgeCardImage> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (knowledgeCardId.present) {
-      map['knowledge_card_id'] = Variable<int>(knowledgeCardId.value);
+      map['knowledge_card_id'] = Variable<String>(knowledgeCardId.value);
     }
-    if (localPath.present) {
-      map['local_path'] = Variable<String>(localPath.value);
+    if (imagePath.present) {
+      map['image_path'] = Variable<String>(imagePath.value);
     }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -1005,8 +1034,9 @@ class KnowledgeCardImagesCompanion extends UpdateCompanion<KnowledgeCardImage> {
     return (StringBuffer('KnowledgeCardImagesCompanion(')
           ..write('id: $id, ')
           ..write('knowledgeCardId: $knowledgeCardId, ')
-          ..write('localPath: $localPath, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('imagePath: $imagePath, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1020,37 +1050,33 @@ class $QuestionCardsTable extends QuestionCards
   $QuestionCardsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _directoryIdMeta = const VerificationMeta(
     'directoryId',
   );
   @override
-  late final GeneratedColumn<int> directoryId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> directoryId = GeneratedColumn<String>(
     'directory_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
   static const VerificationMeta _knowledgeCardIdMeta = const VerificationMeta(
     'knowledgeCardId',
   );
   @override
-  late final GeneratedColumn<int> knowledgeCardId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> knowledgeCardId = GeneratedColumn<String>(
     'knowledge_card_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
@@ -1120,6 +1146,8 @@ class $QuestionCardsTable extends QuestionCards
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('directory_id')) {
       context.handle(
@@ -1183,15 +1211,15 @@ class $QuestionCardsTable extends QuestionCards
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return QuestionCard(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       directoryId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}directory_id'],
       )!,
       knowledgeCardId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}knowledge_card_id'],
       )!,
       title: attachedDatabase.typeMapping.read(
@@ -1220,9 +1248,9 @@ class $QuestionCardsTable extends QuestionCards
 }
 
 class QuestionCard extends DataClass implements Insertable<QuestionCard> {
-  final int id;
-  final int directoryId;
-  final int knowledgeCardId;
+  final String id;
+  final String directoryId;
+  final String knowledgeCardId;
   final String title;
   final String questionMd;
   final DateTime createdAt;
@@ -1239,9 +1267,9 @@ class QuestionCard extends DataClass implements Insertable<QuestionCard> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['directory_id'] = Variable<int>(directoryId);
-    map['knowledge_card_id'] = Variable<int>(knowledgeCardId);
+    map['id'] = Variable<String>(id);
+    map['directory_id'] = Variable<String>(directoryId);
+    map['knowledge_card_id'] = Variable<String>(knowledgeCardId);
     map['title'] = Variable<String>(title);
     map['question_md'] = Variable<String>(questionMd);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -1267,9 +1295,9 @@ class QuestionCard extends DataClass implements Insertable<QuestionCard> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return QuestionCard(
-      id: serializer.fromJson<int>(json['id']),
-      directoryId: serializer.fromJson<int>(json['directoryId']),
-      knowledgeCardId: serializer.fromJson<int>(json['knowledgeCardId']),
+      id: serializer.fromJson<String>(json['id']),
+      directoryId: serializer.fromJson<String>(json['directoryId']),
+      knowledgeCardId: serializer.fromJson<String>(json['knowledgeCardId']),
       title: serializer.fromJson<String>(json['title']),
       questionMd: serializer.fromJson<String>(json['questionMd']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -1280,9 +1308,9 @@ class QuestionCard extends DataClass implements Insertable<QuestionCard> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'directoryId': serializer.toJson<int>(directoryId),
-      'knowledgeCardId': serializer.toJson<int>(knowledgeCardId),
+      'id': serializer.toJson<String>(id),
+      'directoryId': serializer.toJson<String>(directoryId),
+      'knowledgeCardId': serializer.toJson<String>(knowledgeCardId),
       'title': serializer.toJson<String>(title),
       'questionMd': serializer.toJson<String>(questionMd),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -1291,9 +1319,9 @@ class QuestionCard extends DataClass implements Insertable<QuestionCard> {
   }
 
   QuestionCard copyWith({
-    int? id,
-    int? directoryId,
-    int? knowledgeCardId,
+    String? id,
+    String? directoryId,
+    String? knowledgeCardId,
     String? title,
     String? questionMd,
     DateTime? createdAt,
@@ -1363,13 +1391,14 @@ class QuestionCard extends DataClass implements Insertable<QuestionCard> {
 }
 
 class QuestionCardsCompanion extends UpdateCompanion<QuestionCard> {
-  final Value<int> id;
-  final Value<int> directoryId;
-  final Value<int> knowledgeCardId;
+  final Value<String> id;
+  final Value<String> directoryId;
+  final Value<String> knowledgeCardId;
   final Value<String> title;
   final Value<String> questionMd;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<int> rowid;
   const QuestionCardsCompanion({
     this.id = const Value.absent(),
     this.directoryId = const Value.absent(),
@@ -1378,28 +1407,32 @@ class QuestionCardsCompanion extends UpdateCompanion<QuestionCard> {
     this.questionMd = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   QuestionCardsCompanion.insert({
-    this.id = const Value.absent(),
-    required int directoryId,
-    required int knowledgeCardId,
+    required String id,
+    required String directoryId,
+    required String knowledgeCardId,
     required String title,
     this.questionMd = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
-  }) : directoryId = Value(directoryId),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       directoryId = Value(directoryId),
        knowledgeCardId = Value(knowledgeCardId),
        title = Value(title),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<QuestionCard> custom({
-    Expression<int>? id,
-    Expression<int>? directoryId,
-    Expression<int>? knowledgeCardId,
+    Expression<String>? id,
+    Expression<String>? directoryId,
+    Expression<String>? knowledgeCardId,
     Expression<String>? title,
     Expression<String>? questionMd,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1409,17 +1442,19 @@ class QuestionCardsCompanion extends UpdateCompanion<QuestionCard> {
       if (questionMd != null) 'question_md': questionMd,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   QuestionCardsCompanion copyWith({
-    Value<int>? id,
-    Value<int>? directoryId,
-    Value<int>? knowledgeCardId,
+    Value<String>? id,
+    Value<String>? directoryId,
+    Value<String>? knowledgeCardId,
     Value<String>? title,
     Value<String>? questionMd,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<int>? rowid,
   }) {
     return QuestionCardsCompanion(
       id: id ?? this.id,
@@ -1429,6 +1464,7 @@ class QuestionCardsCompanion extends UpdateCompanion<QuestionCard> {
       questionMd: questionMd ?? this.questionMd,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -1436,13 +1472,13 @@ class QuestionCardsCompanion extends UpdateCompanion<QuestionCard> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (directoryId.present) {
-      map['directory_id'] = Variable<int>(directoryId.value);
+      map['directory_id'] = Variable<String>(directoryId.value);
     }
     if (knowledgeCardId.present) {
-      map['knowledge_card_id'] = Variable<int>(knowledgeCardId.value);
+      map['knowledge_card_id'] = Variable<String>(knowledgeCardId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -1456,6 +1492,9 @@ class QuestionCardsCompanion extends UpdateCompanion<QuestionCard> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -1468,7 +1507,8 @@ class QuestionCardsCompanion extends UpdateCompanion<QuestionCard> {
           ..write('title: $title, ')
           ..write('questionMd: $questionMd, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1482,34 +1522,30 @@ class $QuestionCardImagesTable extends QuestionCardImages
   $QuestionCardImagesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _questionCardIdMeta = const VerificationMeta(
     'questionCardId',
   );
   @override
-  late final GeneratedColumn<int> questionCardId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> questionCardId = GeneratedColumn<String>(
     'question_card_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _localPathMeta = const VerificationMeta(
-    'localPath',
+  static const VerificationMeta _imagePathMeta = const VerificationMeta(
+    'imagePath',
   );
   @override
-  late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
-    'local_path',
+  late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
+    'image_path',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -1531,7 +1567,7 @@ class $QuestionCardImagesTable extends QuestionCardImages
   List<GeneratedColumn> get $columns => [
     id,
     questionCardId,
-    localPath,
+    imagePath,
     sortOrder,
   ];
   @override
@@ -1548,6 +1584,8 @@ class $QuestionCardImagesTable extends QuestionCardImages
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('question_card_id')) {
       context.handle(
@@ -1560,13 +1598,13 @@ class $QuestionCardImagesTable extends QuestionCardImages
     } else if (isInserting) {
       context.missing(_questionCardIdMeta);
     }
-    if (data.containsKey('local_path')) {
+    if (data.containsKey('image_path')) {
       context.handle(
-        _localPathMeta,
-        localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
+        _imagePathMeta,
+        imagePath.isAcceptableOrUnknown(data['image_path']!, _imagePathMeta),
       );
     } else if (isInserting) {
-      context.missing(_localPathMeta);
+      context.missing(_imagePathMeta);
     }
     if (data.containsKey('sort_order')) {
       context.handle(
@@ -1584,16 +1622,16 @@ class $QuestionCardImagesTable extends QuestionCardImages
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return QuestionCardImage(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       questionCardId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}question_card_id'],
       )!,
-      localPath: attachedDatabase.typeMapping.read(
+      imagePath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}local_path'],
+        data['${effectivePrefix}image_path'],
       )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -1610,22 +1648,22 @@ class $QuestionCardImagesTable extends QuestionCardImages
 
 class QuestionCardImage extends DataClass
     implements Insertable<QuestionCardImage> {
-  final int id;
-  final int questionCardId;
-  final String localPath;
+  final String id;
+  final String questionCardId;
+  final String imagePath;
   final int sortOrder;
   const QuestionCardImage({
     required this.id,
     required this.questionCardId,
-    required this.localPath,
+    required this.imagePath,
     required this.sortOrder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['question_card_id'] = Variable<int>(questionCardId);
-    map['local_path'] = Variable<String>(localPath);
+    map['id'] = Variable<String>(id);
+    map['question_card_id'] = Variable<String>(questionCardId);
+    map['image_path'] = Variable<String>(imagePath);
     map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
@@ -1634,7 +1672,7 @@ class QuestionCardImage extends DataClass
     return QuestionCardImagesCompanion(
       id: Value(id),
       questionCardId: Value(questionCardId),
-      localPath: Value(localPath),
+      imagePath: Value(imagePath),
       sortOrder: Value(sortOrder),
     );
   }
@@ -1645,9 +1683,9 @@ class QuestionCardImage extends DataClass
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return QuestionCardImage(
-      id: serializer.fromJson<int>(json['id']),
-      questionCardId: serializer.fromJson<int>(json['questionCardId']),
-      localPath: serializer.fromJson<String>(json['localPath']),
+      id: serializer.fromJson<String>(json['id']),
+      questionCardId: serializer.fromJson<String>(json['questionCardId']),
+      imagePath: serializer.fromJson<String>(json['imagePath']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
@@ -1655,22 +1693,22 @@ class QuestionCardImage extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'questionCardId': serializer.toJson<int>(questionCardId),
-      'localPath': serializer.toJson<String>(localPath),
+      'id': serializer.toJson<String>(id),
+      'questionCardId': serializer.toJson<String>(questionCardId),
+      'imagePath': serializer.toJson<String>(imagePath),
       'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
   QuestionCardImage copyWith({
-    int? id,
-    int? questionCardId,
-    String? localPath,
+    String? id,
+    String? questionCardId,
+    String? imagePath,
     int? sortOrder,
   }) => QuestionCardImage(
     id: id ?? this.id,
     questionCardId: questionCardId ?? this.questionCardId,
-    localPath: localPath ?? this.localPath,
+    imagePath: imagePath ?? this.imagePath,
     sortOrder: sortOrder ?? this.sortOrder,
   );
   QuestionCardImage copyWithCompanion(QuestionCardImagesCompanion data) {
@@ -1679,7 +1717,7 @@ class QuestionCardImage extends DataClass
       questionCardId: data.questionCardId.present
           ? data.questionCardId.value
           : this.questionCardId,
-      localPath: data.localPath.present ? data.localPath.value : this.localPath,
+      imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
@@ -1689,67 +1727,75 @@ class QuestionCardImage extends DataClass
     return (StringBuffer('QuestionCardImage(')
           ..write('id: $id, ')
           ..write('questionCardId: $questionCardId, ')
-          ..write('localPath: $localPath, ')
+          ..write('imagePath: $imagePath, ')
           ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, questionCardId, localPath, sortOrder);
+  int get hashCode => Object.hash(id, questionCardId, imagePath, sortOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is QuestionCardImage &&
           other.id == this.id &&
           other.questionCardId == this.questionCardId &&
-          other.localPath == this.localPath &&
+          other.imagePath == this.imagePath &&
           other.sortOrder == this.sortOrder);
 }
 
 class QuestionCardImagesCompanion extends UpdateCompanion<QuestionCardImage> {
-  final Value<int> id;
-  final Value<int> questionCardId;
-  final Value<String> localPath;
+  final Value<String> id;
+  final Value<String> questionCardId;
+  final Value<String> imagePath;
   final Value<int> sortOrder;
+  final Value<int> rowid;
   const QuestionCardImagesCompanion({
     this.id = const Value.absent(),
     this.questionCardId = const Value.absent(),
-    this.localPath = const Value.absent(),
+    this.imagePath = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   QuestionCardImagesCompanion.insert({
-    this.id = const Value.absent(),
-    required int questionCardId,
-    required String localPath,
+    required String id,
+    required String questionCardId,
+    required String imagePath,
     this.sortOrder = const Value.absent(),
-  }) : questionCardId = Value(questionCardId),
-       localPath = Value(localPath);
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       questionCardId = Value(questionCardId),
+       imagePath = Value(imagePath);
   static Insertable<QuestionCardImage> custom({
-    Expression<int>? id,
-    Expression<int>? questionCardId,
-    Expression<String>? localPath,
+    Expression<String>? id,
+    Expression<String>? questionCardId,
+    Expression<String>? imagePath,
     Expression<int>? sortOrder,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (questionCardId != null) 'question_card_id': questionCardId,
-      if (localPath != null) 'local_path': localPath,
+      if (imagePath != null) 'image_path': imagePath,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   QuestionCardImagesCompanion copyWith({
-    Value<int>? id,
-    Value<int>? questionCardId,
-    Value<String>? localPath,
+    Value<String>? id,
+    Value<String>? questionCardId,
+    Value<String>? imagePath,
     Value<int>? sortOrder,
+    Value<int>? rowid,
   }) {
     return QuestionCardImagesCompanion(
       id: id ?? this.id,
       questionCardId: questionCardId ?? this.questionCardId,
-      localPath: localPath ?? this.localPath,
+      imagePath: imagePath ?? this.imagePath,
       sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -1757,16 +1803,19 @@ class QuestionCardImagesCompanion extends UpdateCompanion<QuestionCardImage> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (questionCardId.present) {
-      map['question_card_id'] = Variable<int>(questionCardId.value);
+      map['question_card_id'] = Variable<String>(questionCardId.value);
     }
-    if (localPath.present) {
-      map['local_path'] = Variable<String>(localPath.value);
+    if (imagePath.present) {
+      map['image_path'] = Variable<String>(imagePath.value);
     }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -1776,8 +1825,9 @@ class QuestionCardImagesCompanion extends UpdateCompanion<QuestionCardImage> {
     return (StringBuffer('QuestionCardImagesCompanion(')
           ..write('id: $id, ')
           ..write('questionCardId: $questionCardId, ')
-          ..write('localPath: $localPath, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('imagePath: $imagePath, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1791,26 +1841,22 @@ class $StudyProgressTable extends StudyProgress
   $StudyProgressTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _questionCardIdMeta = const VerificationMeta(
     'questionCardId',
   );
   @override
-  late final GeneratedColumn<int> questionCardId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> questionCardId = GeneratedColumn<String>(
     'question_card_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
@@ -1885,6 +1931,8 @@ class $StudyProgressTable extends StudyProgress
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('question_card_id')) {
       context.handle(
@@ -1943,11 +1991,11 @@ class $StudyProgressTable extends StudyProgress
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return StudyProgressEntry(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       questionCardId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}question_card_id'],
       )!,
       timesReviewed: attachedDatabase.typeMapping.read(
@@ -1977,8 +2025,8 @@ class $StudyProgressTable extends StudyProgress
 
 class StudyProgressEntry extends DataClass
     implements Insertable<StudyProgressEntry> {
-  final int id;
-  final int questionCardId;
+  final String id;
+  final String questionCardId;
   final int timesReviewed;
   final int timesCorrect;
   final int timesIncorrect;
@@ -1994,8 +2042,8 @@ class StudyProgressEntry extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['question_card_id'] = Variable<int>(questionCardId);
+    map['id'] = Variable<String>(id);
+    map['question_card_id'] = Variable<String>(questionCardId);
     map['times_reviewed'] = Variable<int>(timesReviewed);
     map['times_correct'] = Variable<int>(timesCorrect);
     map['times_incorrect'] = Variable<int>(timesIncorrect);
@@ -2024,8 +2072,8 @@ class StudyProgressEntry extends DataClass
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return StudyProgressEntry(
-      id: serializer.fromJson<int>(json['id']),
-      questionCardId: serializer.fromJson<int>(json['questionCardId']),
+      id: serializer.fromJson<String>(json['id']),
+      questionCardId: serializer.fromJson<String>(json['questionCardId']),
       timesReviewed: serializer.fromJson<int>(json['timesReviewed']),
       timesCorrect: serializer.fromJson<int>(json['timesCorrect']),
       timesIncorrect: serializer.fromJson<int>(json['timesIncorrect']),
@@ -2036,8 +2084,8 @@ class StudyProgressEntry extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'questionCardId': serializer.toJson<int>(questionCardId),
+      'id': serializer.toJson<String>(id),
+      'questionCardId': serializer.toJson<String>(questionCardId),
       'timesReviewed': serializer.toJson<int>(timesReviewed),
       'timesCorrect': serializer.toJson<int>(timesCorrect),
       'timesIncorrect': serializer.toJson<int>(timesIncorrect),
@@ -2046,8 +2094,8 @@ class StudyProgressEntry extends DataClass
   }
 
   StudyProgressEntry copyWith({
-    int? id,
-    int? questionCardId,
+    String? id,
+    String? questionCardId,
     int? timesReviewed,
     int? timesCorrect,
     int? timesIncorrect,
@@ -2118,12 +2166,13 @@ class StudyProgressEntry extends DataClass
 }
 
 class StudyProgressCompanion extends UpdateCompanion<StudyProgressEntry> {
-  final Value<int> id;
-  final Value<int> questionCardId;
+  final Value<String> id;
+  final Value<String> questionCardId;
   final Value<int> timesReviewed;
   final Value<int> timesCorrect;
   final Value<int> timesIncorrect;
   final Value<DateTime?> lastReviewedAt;
+  final Value<int> rowid;
   const StudyProgressCompanion({
     this.id = const Value.absent(),
     this.questionCardId = const Value.absent(),
@@ -2131,22 +2180,26 @@ class StudyProgressCompanion extends UpdateCompanion<StudyProgressEntry> {
     this.timesCorrect = const Value.absent(),
     this.timesIncorrect = const Value.absent(),
     this.lastReviewedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   StudyProgressCompanion.insert({
-    this.id = const Value.absent(),
-    required int questionCardId,
+    required String id,
+    required String questionCardId,
     this.timesReviewed = const Value.absent(),
     this.timesCorrect = const Value.absent(),
     this.timesIncorrect = const Value.absent(),
     this.lastReviewedAt = const Value.absent(),
-  }) : questionCardId = Value(questionCardId);
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       questionCardId = Value(questionCardId);
   static Insertable<StudyProgressEntry> custom({
-    Expression<int>? id,
-    Expression<int>? questionCardId,
+    Expression<String>? id,
+    Expression<String>? questionCardId,
     Expression<int>? timesReviewed,
     Expression<int>? timesCorrect,
     Expression<int>? timesIncorrect,
     Expression<DateTime>? lastReviewedAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2155,16 +2208,18 @@ class StudyProgressCompanion extends UpdateCompanion<StudyProgressEntry> {
       if (timesCorrect != null) 'times_correct': timesCorrect,
       if (timesIncorrect != null) 'times_incorrect': timesIncorrect,
       if (lastReviewedAt != null) 'last_reviewed_at': lastReviewedAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   StudyProgressCompanion copyWith({
-    Value<int>? id,
-    Value<int>? questionCardId,
+    Value<String>? id,
+    Value<String>? questionCardId,
     Value<int>? timesReviewed,
     Value<int>? timesCorrect,
     Value<int>? timesIncorrect,
     Value<DateTime?>? lastReviewedAt,
+    Value<int>? rowid,
   }) {
     return StudyProgressCompanion(
       id: id ?? this.id,
@@ -2173,6 +2228,7 @@ class StudyProgressCompanion extends UpdateCompanion<StudyProgressEntry> {
       timesCorrect: timesCorrect ?? this.timesCorrect,
       timesIncorrect: timesIncorrect ?? this.timesIncorrect,
       lastReviewedAt: lastReviewedAt ?? this.lastReviewedAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -2180,10 +2236,10 @@ class StudyProgressCompanion extends UpdateCompanion<StudyProgressEntry> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (questionCardId.present) {
-      map['question_card_id'] = Variable<int>(questionCardId.value);
+      map['question_card_id'] = Variable<String>(questionCardId.value);
     }
     if (timesReviewed.present) {
       map['times_reviewed'] = Variable<int>(timesReviewed.value);
@@ -2197,6 +2253,9 @@ class StudyProgressCompanion extends UpdateCompanion<StudyProgressEntry> {
     if (lastReviewedAt.present) {
       map['last_reviewed_at'] = Variable<DateTime>(lastReviewedAt.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -2208,7 +2267,8 @@ class StudyProgressCompanion extends UpdateCompanion<StudyProgressEntry> {
           ..write('timesReviewed: $timesReviewed, ')
           ..write('timesCorrect: $timesCorrect, ')
           ..write('timesIncorrect: $timesIncorrect, ')
-          ..write('lastReviewedAt: $lastReviewedAt')
+          ..write('lastReviewedAt: $lastReviewedAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -2251,17 +2311,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 
 typedef $$DirectoriesTableCreateCompanionBuilder =
     DirectoriesCompanion Function({
-      Value<int> id,
+      required String id,
       required String name,
-      Value<int?> parentId,
+      Value<String?> parentId,
       required DateTime createdAt,
+      Value<int> rowid,
     });
 typedef $$DirectoriesTableUpdateCompanionBuilder =
     DirectoriesCompanion Function({
-      Value<int> id,
+      Value<String> id,
       Value<String> name,
-      Value<int?> parentId,
+      Value<String?> parentId,
       Value<DateTime> createdAt,
+      Value<int> rowid,
     });
 
 class $$DirectoriesTableFilterComposer
@@ -2273,7 +2335,7 @@ class $$DirectoriesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
@@ -2283,7 +2345,7 @@ class $$DirectoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get parentId => $composableBuilder(
+  ColumnFilters<String> get parentId => $composableBuilder(
     column: $table.parentId,
     builder: (column) => ColumnFilters(column),
   );
@@ -2303,7 +2365,7 @@ class $$DirectoriesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
@@ -2313,7 +2375,7 @@ class $$DirectoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get parentId => $composableBuilder(
+  ColumnOrderings<String> get parentId => $composableBuilder(
     column: $table.parentId,
     builder: (column) => ColumnOrderings(column),
   );
@@ -2333,13 +2395,13 @@ class $$DirectoriesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<int> get parentId =>
+  GeneratedColumn<String> get parentId =>
       $composableBuilder(column: $table.parentId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
@@ -2377,27 +2439,31 @@ class $$DirectoriesTableTableManager
               $$DirectoriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<int?> parentId = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => DirectoriesCompanion(
                 id: id,
                 name: name,
                 parentId: parentId,
                 createdAt: createdAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                required String id,
                 required String name,
-                Value<int?> parentId = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
                 required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
               }) => DirectoriesCompanion.insert(
                 id: id,
                 name: name,
                 parentId: parentId,
                 createdAt: createdAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2426,21 +2492,23 @@ typedef $$DirectoriesTableProcessedTableManager =
     >;
 typedef $$KnowledgeCardsTableCreateCompanionBuilder =
     KnowledgeCardsCompanion Function({
-      Value<int> id,
-      required int directoryId,
+      required String id,
+      required String directoryId,
       required String title,
       Value<String> contentMd,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<int> rowid,
     });
 typedef $$KnowledgeCardsTableUpdateCompanionBuilder =
     KnowledgeCardsCompanion Function({
-      Value<int> id,
-      Value<int> directoryId,
+      Value<String> id,
+      Value<String> directoryId,
       Value<String> title,
       Value<String> contentMd,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<int> rowid,
     });
 
 class $$KnowledgeCardsTableFilterComposer
@@ -2452,12 +2520,12 @@ class $$KnowledgeCardsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get directoryId => $composableBuilder(
+  ColumnFilters<String> get directoryId => $composableBuilder(
     column: $table.directoryId,
     builder: (column) => ColumnFilters(column),
   );
@@ -2492,12 +2560,12 @@ class $$KnowledgeCardsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get directoryId => $composableBuilder(
+  ColumnOrderings<String> get directoryId => $composableBuilder(
     column: $table.directoryId,
     builder: (column) => ColumnOrderings(column),
   );
@@ -2532,10 +2600,10 @@ class $$KnowledgeCardsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<int> get directoryId => $composableBuilder(
+  GeneratedColumn<String> get directoryId => $composableBuilder(
     column: $table.directoryId,
     builder: (column) => column,
   );
@@ -2586,12 +2654,13 @@ class $$KnowledgeCardsTableTableManager
               $$KnowledgeCardsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int> directoryId = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> directoryId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> contentMd = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => KnowledgeCardsCompanion(
                 id: id,
                 directoryId: directoryId,
@@ -2599,15 +2668,17 @@ class $$KnowledgeCardsTableTableManager
                 contentMd: contentMd,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required int directoryId,
+                required String id,
+                required String directoryId,
                 required String title,
                 Value<String> contentMd = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
               }) => KnowledgeCardsCompanion.insert(
                 id: id,
                 directoryId: directoryId,
@@ -2615,6 +2686,7 @@ class $$KnowledgeCardsTableTableManager
                 contentMd: contentMd,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2643,17 +2715,19 @@ typedef $$KnowledgeCardsTableProcessedTableManager =
     >;
 typedef $$KnowledgeCardImagesTableCreateCompanionBuilder =
     KnowledgeCardImagesCompanion Function({
-      Value<int> id,
-      required int knowledgeCardId,
-      required String localPath,
+      required String id,
+      required String knowledgeCardId,
+      required String imagePath,
       Value<int> sortOrder,
+      Value<int> rowid,
     });
 typedef $$KnowledgeCardImagesTableUpdateCompanionBuilder =
     KnowledgeCardImagesCompanion Function({
-      Value<int> id,
-      Value<int> knowledgeCardId,
-      Value<String> localPath,
+      Value<String> id,
+      Value<String> knowledgeCardId,
+      Value<String> imagePath,
       Value<int> sortOrder,
+      Value<int> rowid,
     });
 
 class $$KnowledgeCardImagesTableFilterComposer
@@ -2665,18 +2739,18 @@ class $$KnowledgeCardImagesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get knowledgeCardId => $composableBuilder(
+  ColumnFilters<String> get knowledgeCardId => $composableBuilder(
     column: $table.knowledgeCardId,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get localPath => $composableBuilder(
-    column: $table.localPath,
+  ColumnFilters<String> get imagePath => $composableBuilder(
+    column: $table.imagePath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2695,18 +2769,18 @@ class $$KnowledgeCardImagesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get knowledgeCardId => $composableBuilder(
+  ColumnOrderings<String> get knowledgeCardId => $composableBuilder(
     column: $table.knowledgeCardId,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get localPath => $composableBuilder(
-    column: $table.localPath,
+  ColumnOrderings<String> get imagePath => $composableBuilder(
+    column: $table.imagePath,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2725,16 +2799,16 @@ class $$KnowledgeCardImagesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<int> get knowledgeCardId => $composableBuilder(
+  GeneratedColumn<String> get knowledgeCardId => $composableBuilder(
     column: $table.knowledgeCardId,
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get localPath =>
-      $composableBuilder(column: $table.localPath, builder: (column) => column);
+  GeneratedColumn<String> get imagePath =>
+      $composableBuilder(column: $table.imagePath, builder: (column) => column);
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -2783,27 +2857,31 @@ class $$KnowledgeCardImagesTableTableManager
               ),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int> knowledgeCardId = const Value.absent(),
-                Value<String> localPath = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> knowledgeCardId = const Value.absent(),
+                Value<String> imagePath = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => KnowledgeCardImagesCompanion(
                 id: id,
                 knowledgeCardId: knowledgeCardId,
-                localPath: localPath,
+                imagePath: imagePath,
                 sortOrder: sortOrder,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required int knowledgeCardId,
-                required String localPath,
+                required String id,
+                required String knowledgeCardId,
+                required String imagePath,
                 Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => KnowledgeCardImagesCompanion.insert(
                 id: id,
                 knowledgeCardId: knowledgeCardId,
-                localPath: localPath,
+                imagePath: imagePath,
                 sortOrder: sortOrder,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2836,23 +2914,25 @@ typedef $$KnowledgeCardImagesTableProcessedTableManager =
     >;
 typedef $$QuestionCardsTableCreateCompanionBuilder =
     QuestionCardsCompanion Function({
-      Value<int> id,
-      required int directoryId,
-      required int knowledgeCardId,
+      required String id,
+      required String directoryId,
+      required String knowledgeCardId,
       required String title,
       Value<String> questionMd,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<int> rowid,
     });
 typedef $$QuestionCardsTableUpdateCompanionBuilder =
     QuestionCardsCompanion Function({
-      Value<int> id,
-      Value<int> directoryId,
-      Value<int> knowledgeCardId,
+      Value<String> id,
+      Value<String> directoryId,
+      Value<String> knowledgeCardId,
       Value<String> title,
       Value<String> questionMd,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<int> rowid,
     });
 
 class $$QuestionCardsTableFilterComposer
@@ -2864,17 +2944,17 @@ class $$QuestionCardsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get directoryId => $composableBuilder(
+  ColumnFilters<String> get directoryId => $composableBuilder(
     column: $table.directoryId,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get knowledgeCardId => $composableBuilder(
+  ColumnFilters<String> get knowledgeCardId => $composableBuilder(
     column: $table.knowledgeCardId,
     builder: (column) => ColumnFilters(column),
   );
@@ -2909,17 +2989,17 @@ class $$QuestionCardsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get directoryId => $composableBuilder(
+  ColumnOrderings<String> get directoryId => $composableBuilder(
     column: $table.directoryId,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get knowledgeCardId => $composableBuilder(
+  ColumnOrderings<String> get knowledgeCardId => $composableBuilder(
     column: $table.knowledgeCardId,
     builder: (column) => ColumnOrderings(column),
   );
@@ -2954,15 +3034,15 @@ class $$QuestionCardsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<int> get directoryId => $composableBuilder(
+  GeneratedColumn<String> get directoryId => $composableBuilder(
     column: $table.directoryId,
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get knowledgeCardId => $composableBuilder(
+  GeneratedColumn<String> get knowledgeCardId => $composableBuilder(
     column: $table.knowledgeCardId,
     builder: (column) => column,
   );
@@ -3013,13 +3093,14 @@ class $$QuestionCardsTableTableManager
               $$QuestionCardsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int> directoryId = const Value.absent(),
-                Value<int> knowledgeCardId = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> directoryId = const Value.absent(),
+                Value<String> knowledgeCardId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> questionMd = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => QuestionCardsCompanion(
                 id: id,
                 directoryId: directoryId,
@@ -3028,16 +3109,18 @@ class $$QuestionCardsTableTableManager
                 questionMd: questionMd,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required int directoryId,
-                required int knowledgeCardId,
+                required String id,
+                required String directoryId,
+                required String knowledgeCardId,
                 required String title,
                 Value<String> questionMd = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
               }) => QuestionCardsCompanion.insert(
                 id: id,
                 directoryId: directoryId,
@@ -3046,6 +3129,7 @@ class $$QuestionCardsTableTableManager
                 questionMd: questionMd,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -3074,17 +3158,19 @@ typedef $$QuestionCardsTableProcessedTableManager =
     >;
 typedef $$QuestionCardImagesTableCreateCompanionBuilder =
     QuestionCardImagesCompanion Function({
-      Value<int> id,
-      required int questionCardId,
-      required String localPath,
+      required String id,
+      required String questionCardId,
+      required String imagePath,
       Value<int> sortOrder,
+      Value<int> rowid,
     });
 typedef $$QuestionCardImagesTableUpdateCompanionBuilder =
     QuestionCardImagesCompanion Function({
-      Value<int> id,
-      Value<int> questionCardId,
-      Value<String> localPath,
+      Value<String> id,
+      Value<String> questionCardId,
+      Value<String> imagePath,
       Value<int> sortOrder,
+      Value<int> rowid,
     });
 
 class $$QuestionCardImagesTableFilterComposer
@@ -3096,18 +3182,18 @@ class $$QuestionCardImagesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get questionCardId => $composableBuilder(
+  ColumnFilters<String> get questionCardId => $composableBuilder(
     column: $table.questionCardId,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get localPath => $composableBuilder(
-    column: $table.localPath,
+  ColumnFilters<String> get imagePath => $composableBuilder(
+    column: $table.imagePath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3126,18 +3212,18 @@ class $$QuestionCardImagesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get questionCardId => $composableBuilder(
+  ColumnOrderings<String> get questionCardId => $composableBuilder(
     column: $table.questionCardId,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get localPath => $composableBuilder(
-    column: $table.localPath,
+  ColumnOrderings<String> get imagePath => $composableBuilder(
+    column: $table.imagePath,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3156,16 +3242,16 @@ class $$QuestionCardImagesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<int> get questionCardId => $composableBuilder(
+  GeneratedColumn<String> get questionCardId => $composableBuilder(
     column: $table.questionCardId,
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get localPath =>
-      $composableBuilder(column: $table.localPath, builder: (column) => column);
+  GeneratedColumn<String> get imagePath =>
+      $composableBuilder(column: $table.imagePath, builder: (column) => column);
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -3211,27 +3297,31 @@ class $$QuestionCardImagesTableTableManager
               ),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int> questionCardId = const Value.absent(),
-                Value<String> localPath = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> questionCardId = const Value.absent(),
+                Value<String> imagePath = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => QuestionCardImagesCompanion(
                 id: id,
                 questionCardId: questionCardId,
-                localPath: localPath,
+                imagePath: imagePath,
                 sortOrder: sortOrder,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required int questionCardId,
-                required String localPath,
+                required String id,
+                required String questionCardId,
+                required String imagePath,
                 Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => QuestionCardImagesCompanion.insert(
                 id: id,
                 questionCardId: questionCardId,
-                localPath: localPath,
+                imagePath: imagePath,
                 sortOrder: sortOrder,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -3264,21 +3354,23 @@ typedef $$QuestionCardImagesTableProcessedTableManager =
     >;
 typedef $$StudyProgressTableCreateCompanionBuilder =
     StudyProgressCompanion Function({
-      Value<int> id,
-      required int questionCardId,
+      required String id,
+      required String questionCardId,
       Value<int> timesReviewed,
       Value<int> timesCorrect,
       Value<int> timesIncorrect,
       Value<DateTime?> lastReviewedAt,
+      Value<int> rowid,
     });
 typedef $$StudyProgressTableUpdateCompanionBuilder =
     StudyProgressCompanion Function({
-      Value<int> id,
-      Value<int> questionCardId,
+      Value<String> id,
+      Value<String> questionCardId,
       Value<int> timesReviewed,
       Value<int> timesCorrect,
       Value<int> timesIncorrect,
       Value<DateTime?> lastReviewedAt,
+      Value<int> rowid,
     });
 
 class $$StudyProgressTableFilterComposer
@@ -3290,12 +3382,12 @@ class $$StudyProgressTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get questionCardId => $composableBuilder(
+  ColumnFilters<String> get questionCardId => $composableBuilder(
     column: $table.questionCardId,
     builder: (column) => ColumnFilters(column),
   );
@@ -3330,12 +3422,12 @@ class $$StudyProgressTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get questionCardId => $composableBuilder(
+  ColumnOrderings<String> get questionCardId => $composableBuilder(
     column: $table.questionCardId,
     builder: (column) => ColumnOrderings(column),
   );
@@ -3370,10 +3462,10 @@ class $$StudyProgressTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<int> get questionCardId => $composableBuilder(
+  GeneratedColumn<String> get questionCardId => $composableBuilder(
     column: $table.questionCardId,
     builder: (column) => column,
   );
@@ -3434,12 +3526,13 @@ class $$StudyProgressTableTableManager
               $$StudyProgressTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int> questionCardId = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> questionCardId = const Value.absent(),
                 Value<int> timesReviewed = const Value.absent(),
                 Value<int> timesCorrect = const Value.absent(),
                 Value<int> timesIncorrect = const Value.absent(),
                 Value<DateTime?> lastReviewedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => StudyProgressCompanion(
                 id: id,
                 questionCardId: questionCardId,
@@ -3447,15 +3540,17 @@ class $$StudyProgressTableTableManager
                 timesCorrect: timesCorrect,
                 timesIncorrect: timesIncorrect,
                 lastReviewedAt: lastReviewedAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required int questionCardId,
+                required String id,
+                required String questionCardId,
                 Value<int> timesReviewed = const Value.absent(),
                 Value<int> timesCorrect = const Value.absent(),
                 Value<int> timesIncorrect = const Value.absent(),
                 Value<DateTime?> lastReviewedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => StudyProgressCompanion.insert(
                 id: id,
                 questionCardId: questionCardId,
@@ -3463,6 +3558,7 @@ class $$StudyProgressTableTableManager
                 timesCorrect: timesCorrect,
                 timesIncorrect: timesIncorrect,
                 lastReviewedAt: lastReviewedAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

@@ -5,26 +5,26 @@ class QuestionCardDao extends DatabaseAccessor<AppDatabase>
     with _$QuestionCardDaoMixin {
   QuestionCardDao(super.db);
 
-  Stream<List<QuestionCard>> watchByDirectory(int directoryId) =>
+  Stream<List<QuestionCard>> watchByDirectory(String directoryId) =>
       (select(questionCards)
             ..where((t) => t.directoryId.equals(directoryId)))
           .watch();
 
-  Stream<List<QuestionCard>> watchByKnowledgeCard(int knowledgeCardId) =>
+  Stream<List<QuestionCard>> watchByKnowledgeCard(String knowledgeCardId) =>
       (select(questionCards)
             ..where((t) => t.knowledgeCardId.equals(knowledgeCardId)))
           .watch();
 
-  Future<List<QuestionCard>> getByDirectoryIds(List<int> dirIds) =>
+  Future<List<QuestionCard>> getByDirectoryIds(List<String> dirIds) =>
       (select(questionCards)
             ..where((t) => t.directoryId.isIn(dirIds)))
           .get();
 
-  Future<QuestionCard?> getById(int id) =>
+  Future<QuestionCard?> getById(String id) =>
       (select(questionCards)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
 
-  Future<bool> hasLinkedCards(int knowledgeCardId) async {
+  Future<bool> hasLinkedCards(String knowledgeCardId) async {
     final rows = await (select(questionCards)
           ..where((t) => t.knowledgeCardId.equals(knowledgeCardId))
           ..limit(1))
@@ -32,39 +32,44 @@ class QuestionCardDao extends DatabaseAccessor<AppDatabase>
     return rows.isNotEmpty;
   }
 
-  Future<int> insertCard(QuestionCardsCompanion entry) =>
-      into(questionCards).insert(entry);
+  Future<void> insertCard(QuestionCardsCompanion entry) =>
+      into(questionCards).insert(entry).then((_) {});
 
   Future<bool> updateCard(QuestionCardsCompanion entry) =>
       update(questionCards).replace(entry);
 
-  Future<int> deleteById(int id) =>
-      (delete(questionCards)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteById(String id) =>
+      (delete(questionCards)..where((t) => t.id.equals(id))).go().then((_) {});
 
-  Future<int> deleteByDirectoryIds(List<int> dirIds) =>
-      (delete(questionCards)..where((t) => t.directoryId.isIn(dirIds))).go();
+  Future<void> deleteByDirectoryIds(List<String> dirIds) =>
+      (delete(questionCards)..where((t) => t.directoryId.isIn(dirIds)))
+          .go()
+          .then((_) {});
 
   // ── Images ────────────────────────────────────────────────────────────────
 
-  Stream<List<QuestionCardImage>> watchImages(int questionCardId) =>
+  Stream<List<QuestionCardImage>> watchImages(String questionCardId) =>
       (select(questionCardImages)
             ..where((t) => t.questionCardId.equals(questionCardId))
             ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
           .watch();
 
-  Future<List<QuestionCardImage>> getImages(int questionCardId) =>
+  Future<List<QuestionCardImage>> getImages(String questionCardId) =>
       (select(questionCardImages)
             ..where((t) => t.questionCardId.equals(questionCardId)))
           .get();
 
-  Future<int> insertImage(QuestionCardImagesCompanion entry) =>
-      into(questionCardImages).insert(entry);
+  Future<void> insertImage(QuestionCardImagesCompanion entry) =>
+      into(questionCardImages).insert(entry).then((_) {});
 
-  Future<int> deleteImage(int id) =>
-      (delete(questionCardImages)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteImage(String id) =>
+      (delete(questionCardImages)..where((t) => t.id.equals(id)))
+          .go()
+          .then((_) {});
 
-  Future<int> deleteAllImagesForCard(int questionCardId) =>
+  Future<void> deleteAllImagesForCard(String questionCardId) =>
       (delete(questionCardImages)
             ..where((t) => t.questionCardId.equals(questionCardId)))
-          .go();
+          .go()
+          .then((_) {});
 }

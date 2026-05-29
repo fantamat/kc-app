@@ -26,8 +26,6 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   Future<void> _export() async {
     final dirIdStr = widget.directoryId;
     if (dirIdStr == null) return;
-    final dirId = int.tryParse(dirIdStr);
-    if (dirId == null) return;
 
     setState(() {
       _exporting = true;
@@ -35,15 +33,14 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     });
 
     try {
-      final db = ref.read(appDatabaseProvider);
       final serializer = SubtreeSerializer(
-        db: db,
         dirRepo: ref.read(directoryRepositoryProvider),
         kcRepo: ref.read(knowledgeCardRepositoryProvider),
         qcRepo: ref.read(questionCardRepositoryProvider),
+        imageService: ref.read(imageServiceProvider),
       );
 
-      final json = await serializer.exportSubtree(dirId);
+      final json = await serializer.exportSubtree(dirIdStr);
       final bytes = utf8.encode(jsonEncode(json));
 
       final tmpDir = await getTemporaryDirectory();

@@ -36,20 +36,27 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.addColumn(questionCards, questionCards.title);
-          }
-          // v3: title is now required; questionMd has a Dart-side default ''.
-          // No SQL schema change needed (SQLite ALTER COLUMN is unsupported).
-          if (from < 4) {
-            await m.addColumn(
-                studyProgress, studyProgress.timesIncorrect);
-          }
+          // v5: Primary keys changed from int to String (UUID).
+          // Drop all tables and recreate (no data migration required).
+          await customStatement(
+              'DROP TABLE IF EXISTS study_progress');
+          await customStatement(
+              'DROP TABLE IF EXISTS question_card_images');
+          await customStatement(
+              'DROP TABLE IF EXISTS question_cards');
+          await customStatement(
+              'DROP TABLE IF EXISTS knowledge_card_images');
+          await customStatement(
+              'DROP TABLE IF EXISTS knowledge_cards');
+          await customStatement(
+              'DROP TABLE IF EXISTS directories');
+          await m.createAll();
         },
       );
 }
