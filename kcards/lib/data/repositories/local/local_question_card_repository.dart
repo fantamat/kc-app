@@ -78,18 +78,18 @@ class LocalQuestionCardRepository implements IQuestionCardRepository {
     String? questionMd,
     String? knowledgeCardId,
   }) async {
-    final row = await _dao.getById(id);
-    if (row == null) return;
-    await _dao.updateCard(
-      row.toCompanion(true).copyWith(
-            title: title != null ? Value(title) : const Value.absent(),
-            questionMd:
-                questionMd != null ? Value(questionMd) : const Value.absent(),
-            knowledgeCardId: knowledgeCardId != null
-                ? Value(knowledgeCardId)
-                : const Value.absent(),
-            updatedAt: Value(DateTime.now()),
-          ),
+    final exists = await _dao.getById(id);
+    if (exists == null) return;
+    await _dao.patchCard(
+      id,
+      QuestionCardsCompanion(
+        title: title != null ? Value(title) : const Value.absent(),
+        questionMd:
+            questionMd != null ? Value(questionMd) : const Value.absent(),
+        knowledgeCardId:
+            knowledgeCardId != null ? Value(knowledgeCardId) : const Value.absent(),
+        updatedAt: Value(DateTime.now()),
+      ),
     );
   }
 

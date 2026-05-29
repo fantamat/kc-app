@@ -38,6 +38,11 @@ class QuestionCardDao extends DatabaseAccessor<AppDatabase>
   Future<bool> updateCard(QuestionCardsCompanion entry) =>
       update(questionCards).replace(entry);
 
+  Future<void> patchCard(String id, QuestionCardsCompanion changes) =>
+      (update(questionCards)..where((t) => t.id.equals(id)))
+          .write(changes)
+          .then((_) {});
+
   Future<void> deleteById(String id) =>
       (delete(questionCards)..where((t) => t.id.equals(id))).go().then((_) {});
 

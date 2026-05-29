@@ -3,6 +3,7 @@ name: test-orchestrator
 description: Main agent responsible for creating, running, and debugging high-quality test suites. Strictly delegates code analysis to specialized sub-agents for interface extraction and mocking strategy.
 tools:
   - vscode/runCommand
+  - execute/runInTerminal
   - agent
   - edit/createFile
   - edit/editFiles
