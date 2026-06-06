@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:kcards/features/auth/auth_screen.dart';
+import 'package:kcards/features/auth/boot_screen.dart';
 import 'package:kcards/features/card_editor/knowledge_card_editor_screen.dart';
 import 'package:kcards/features/card_editor/question_card_editor_screen.dart';
 import 'package:kcards/features/export_import/export_screen.dart';
@@ -38,6 +39,7 @@ final routerNotifierProvider = Provider<_RouterNotifier>((ref) {
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authStatus = ref.watch(authStatusProvider);
+  final appBootState = ref.watch(appBootStateProvider);
   final notifier = ref.watch(routerNotifierProvider);
 
   return GoRouter(
@@ -45,21 +47,30 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: (context, state) {
       final isAuthRoute = state.matchedLocation == '/auth';
+      final isBootRoute = state.matchedLocation == '/boot';
 
-      if (authStatus == AuthStatus.loading) {
-        return null;
+      if (appBootState == AppBootState.loading ||
+          appBootState == AppBootState.offline) {
+        return isBootRoute ? null : '/boot';
       }
-      if (authStatus == AuthStatus.unauthenticated && !isAuthRoute) {
-        return '/auth';
+      if (appBootState == AppBootState.requiresLogin) {
+        return isAuthRoute ? null : '/auth';
       }
       if ((authStatus == AuthStatus.authenticated ||
               authStatus == AuthStatus.guest) &&
-          isAuthRoute) {
+          (isAuthRoute || isBootRoute)) {
+        return '/';
+      }
+      if (isBootRoute) {
         return '/';
       }
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/boot',
+        builder: (context, state) => const BootScreen(),
+      ),
       GoRoute(
         path: '/auth',
         builder: (context, state) => const AuthScreen(),

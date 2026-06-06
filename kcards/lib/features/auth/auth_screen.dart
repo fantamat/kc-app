@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +15,8 @@ class AuthScreen extends ConsumerStatefulWidget {
 
 class _AuthScreenState extends ConsumerState<AuthScreen>
     with SingleTickerProviderStateMixin {
+  static const _authTimeout = Duration(seconds: 20);
+
   late final TabController _tabController;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -48,22 +52,70 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     });
 
     final auth = ref.read(firebaseAuthProvider);
+    final guestMode = ref.read(guestModeProvider.notifier);
     try {
-      await ref.read(guestModeProvider.notifier).setGuestMode(false);
       if (_tabController.index == 0) {
-        await auth.signInWithEmailAndPassword(email: email, password: password);
+        await auth
+            .signInWithEmailAndPassword(email: email, password: password)
+            .timeout(_authTimeout);
       } else {
-        await auth.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
+        await auth
+            .createUserWithEmailAndPassword(
+              email: email,
+              password: password,
+            )
+            .timeout(_authTimeout);
+      }
+
+      // Persisting guest mode should not block auth completion for the user.
+      try {
+        await guestMode.setGuestMode(false).timeout(const Duration(seconds: 5));
+      } on TimeoutException catch (e, st) {
+        debugPrint('Guest mode persistence timeout: $e\n$st');
+        if (mounted) {
+          setState(
+            () => _error =
+                'Signed in, but saving local session settings timed out.',
+          );
+        }
+      } on Exception catch (e, st) {
+        debugPrint('Guest mode persistence failed: $e\n$st');
+        // Ignore local preference issues; user auth already succeeded.
       }
     } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message ?? e.code);
+      if (mounted) {
+        setState(() => _error = e.message ?? _friendlyAuthError(e.code));
+      }
+    } on TimeoutException {
+      if (mounted) {
+        setState(
+          () => _error =
+              'Sign up timed out. Please check internet and Firebase Auth setup.',
+        );
+      }
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  String _friendlyAuthError(String code) {
+    switch (code) {
+      case 'operation-not-allowed':
+        return 'Email/password sign-in is not enabled in Firebase Auth.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'email-already-in-use':
+        return 'This email is already registered. Try signing in instead.';
+      default:
+        return code;
     }
   }
 
